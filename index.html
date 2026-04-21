@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>triplan — AI 여행 플래너</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --bg2: #141414;
+      --bg3: #1c1c1c;
+      --orange: #FF6B2B;
+      --orange-dim: #ff6b2b18;
+      --orange-mid: #ff6b2b44;
+      --text: #f0f0f0;
+      --text-dim: #888;
+      --text-muted: #444;
+      --border: #2a2a2a;
+      --green: #2ECC71;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      background: rgba(13,13,13,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--orange); }
+    .nav-logo span { color: var(--text); }
+    .nav-links { display: flex; gap: 6px; }
+    .nav-links a {
+      color: var(--text-dim); text-decoration: none; font-size: 0.8rem;
+      padding: 6px 14px; border-radius: 6px; border: 1px solid transparent; transition: all 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); border-color: var(--border); background: var(--bg3); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 100px 24px 60px; position: relative; overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute; width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(255,107,43,0.10) 0%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--orange-dim); border: 1px solid var(--orange-mid);
+      color: var(--orange); font-size: 0.75rem; font-weight: 500;
+      padding: 6px 16px; border-radius: 100px; margin-bottom: 28px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero-badge::before {
+      content: ''; width: 6px; height: 6px; background: var(--orange);
+      border-radius: 50%; animation: blink 1.5s ease infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+      font-weight: 800; line-height: 1.1; letter-spacing: -1px;
+      margin-bottom: 20px; animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .hero h1 .accent { color: var(--orange); }
+    .hero-sub {
+      font-size: 1rem; color: var(--text-dim); max-width: 500px;
+      line-height: 1.75; margin-bottom: 40px; font-weight: 300;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .hero-buttons {
+      display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .btn-primary {
+      background: var(--orange); color: #fff; font-weight: 700;
+      padding: 14px 28px; border-radius: 10px; text-decoration: none;
+      font-size: 0.9rem; transition: all 0.2s;
+    }
+    .btn-primary:hover { background: #e55a1f; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,107,43,0.28); }
+    .btn-secondary {
+      background: var(--bg3); color: var(--text); font-weight: 500;
+      padding: 14px 28px; border-radius: 10px; text-decoration: none;
+      font-size: 0.9rem; border: 1px solid var(--border); transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--orange); color: var(--orange); transform: translateY(-2px); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    /* SECTION */
+    .section { max-width: 960px; margin: 0 auto; padding: 60px 24px; }
+    .section-label {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--orange); margin-bottom: 10px;
+    }
+    .section-title { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 32px; }
+    .divider { border: none; border-top: 1px solid var(--border); }
+
+    /* STATUS CARDS */
+    .status-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 26px 30px; margin-bottom: 16px;
+    }
+    .status-card.active { border-color: var(--orange); }
+    .status-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+    .status-week { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; }
+    .status-date { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
+    .badge {
+      font-size: 0.7rem; font-weight: 700; padding: 4px 12px;
+      border-radius: 100px; white-space: nowrap;
+    }
+    .badge-done { background: rgba(46,204,113,0.12); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+    .badge-wip  { background: rgba(255,107,43,0.12);  color: var(--orange); border: 1px solid rgba(255,107,43,0.3); }
+    .badge-plan { background: rgba(100,100,100,0.1);  color: var(--text-dim); border: 1px solid var(--border); }
+    .progress-wrap { background: var(--bg3); border-radius: 100px; height: 5px; margin-bottom: 18px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--orange), #ffaa00); }
+    .task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .task { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-dim); }
+    .task.done { color: var(--text); }
+    .task-dot {
+      width: 16px; height: 16px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; flex-shrink: 0;
+    }
+    .task-dot.done { background: rgba(46,204,113,0.18); color: var(--green); border: 1px solid rgba(46,204,113,0.35); }
+    .task-dot.pending { background: var(--bg3); border: 1px solid var(--border); }
+
+    /* WBS */
+    .wbs-grid { display: grid; gap: 8px; }
+    .wbs-row {
+      display: grid; grid-template-columns: 90px 120px 1fr auto;
+      align-items: center; gap: 16px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 20px; transition: border-color 0.2s;
+    }
+    .wbs-row:hover { border-color: var(--orange-mid); }
+    .wbs-row.current { border-color: var(--orange); background: var(--orange-dim); }
+    .wbs-week { font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700; }
+    .wbs-date-col { font-size: 0.75rem; color: var(--text-muted); }
+    .wbs-goal { font-size: 0.85rem; font-weight: 500; }
+    .wbs-goal small { display: block; font-size: 0.74rem; color: var(--text-dim); margin-top: 2px; font-weight: 300; }
+
+    /* STACK */
+    .stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: 10px; }
+    .stack-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .stack-cat { font-size: 0.67rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .stack-name { font-size: 0.82rem; font-weight: 600; }
+
+    /* LINKS */
+    .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; }
+    .link-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; text-decoration: none; color: var(--text);
+      display: flex; flex-direction: column; gap: 8px; transition: all 0.2s;
+    }
+    .link-card:hover { border-color: var(--orange); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .link-icon { font-size: 1.4rem; }
+    .link-title { font-family: 'Syne', sans-serif; font-size: 0.92rem; font-weight: 700; }
+    .link-desc { font-size: 0.76rem; color: var(--text-dim); }
+
+    footer {
+      border-top: 1px solid var(--border); text-align: center;
+      padding: 32px 24px; font-size: 0.77rem; color: var(--text-muted);
+    }
+    footer span { color: var(--orange); }
+
+    @media(max-width:600px) {
+      nav { padding: 14px 20px; }
+      .task-grid { grid-template-columns: 1fr; }
+      .wbs-row { grid-template-columns: 60px 1fr auto; }
+      .wbs-date-col { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">tri<span>plan</span></div>
+  <div class="nav-links">
+    <a href="#status">현황</a>
+    <a href="#wbs">WBS</a>
+    <a href="#stack">기술스택</a>
+    <a href="#links">문서</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">🚀 SKU 2026 멘토링 프로젝트 · 진행중</div>
+  <h1>단톡방 대화 하나로<br><span class="accent">AI가 여행을 짜드립니다</span></h1>
+  <p class="hero-sub">
+    카카오톡 단체방 대화를 업로드하면 AI가 A·B안을 생성하고,<br>
+    팀원 투표로 최종 일정을 확정하는 협업 여행 플래너
+  </p>
+  <div class="hero-buttons">
+    <a href="https://github.com/sku2026-triplan-dev" class="btn-primary">GitHub 바로가기 →</a>
+    <a href="#status" class="btn-secondary">진행 현황 보기</a>
+  </div>
+</section>
+
+<!-- 현황 -->
+<section class="section" id="status">
+  <div class="section-label">Progress</div>
+  <div class="section-title">개발 진행 현황</div>
+
+  <div class="status-card">
+    <div class="status-header">
+      <div><div class="status-week">1주차 — 환경 세팅</div><div class="status-date">04/17 (금)</div></div>
+      <span class="badge badge-done">✅ 완료</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:100%"></div></div>
+    <div class="task-grid">
+      <div class="task done"><div class="task-dot done">✓</div>Spring Boot 프로젝트 생성</div>
+      <div class="task done"><div class="task-dot done">✓</div>헬스체크 API 구현</div>
+      <div class="task done"><div class="task-dot done">✓</div>React + Tailwind 세팅</div>
+      <div class="task done"><div class="task-dot done">✓</div>S1 화면 + 파일 업로드</div>
+    </div>
+  </div>
+
+  <div class="status-card active">
+    <div class="status-header">
+      <div><div class="status-week">2주차 — 설계 마무리</div><div class="status-date">04/24 (금)</div></div>
+      <span class="badge badge-wip">🔄 진행중</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:55%"></div></div>
+    <div class="task-grid">
+      <div class="task done"><div class="task-dot done">✓</div>WBS 확정</div>
+      <div class="task done"><div class="task-dot done">✓</div>기능정의서 v3 완성</div>
+      <div class="task"><div class="task-dot pending"></div>Mock JSON 스키마 설계</div>
+      <div class="task"><div class="task-dot pending"></div>DB DDL + JPA Entity 초안</div>
+    </div>
+  </div>
+
+  <div class="status-card">
+    <div class="status-header">
+      <div><div class="status-week">3주차~ — 백엔드 핵심 API</div><div class="status-date">05/06 ~</div></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" style="width:0%"></div></div>
+    <div class="task-grid">
+      <div class="task"><div class="task-dot pending"></div>플랜 생성 API (Mock)</div>
+      <div class="task"><div class="task-dot pending"></div>JPA Entity 완성</div>
+      <div class="task"><div class="task-dot pending"></div>카카오 OAuth 연동</div>
+      <div class="task"><div class="task-dot pending"></div>Spring Security 설정</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- WBS -->
+<section class="section" id="wbs">
+  <div class="section-label">Schedule</div>
+  <div class="section-title">전체 개발 일정 (WBS)</div>
+  <div class="wbs-grid">
+    <div class="wbs-row">
+      <div class="wbs-week">1주차</div>
+      <div class="wbs-date-col">04/17 (금)</div>
+      <div class="wbs-goal">🏗️ 설계 완료 · 환경 세팅<small>Spring Boot + React 초기 환경</small></div>
+      <span class="badge badge-done">완료</span>
+    </div>
+    <div class="wbs-row current">
+      <div class="wbs-week">2주차 ◀</div>
+      <div class="wbs-date-col">04/24 (금)</div>
+      <div class="wbs-goal">📐 설계 마무리 · Mock 데이터<small>기능정의서 + Mock JSON + DDL</small></div>
+      <span class="badge badge-wip">진행중</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">3주차</div>
+      <div class="wbs-date-col">05/06 (수)</div>
+      <div class="wbs-goal">⚙️ 백엔드 핵심 API Phase 1<small>플랜 생성 API + JPA Entity</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">4주차</div>
+      <div class="wbs-date-col">05/11 (월)</div>
+      <div class="wbs-goal">🗳️ 투표 시스템 백엔드<small>UUID 투표 API + UPSERT Merge</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">5주차</div>
+      <div class="wbs-date-col">05/18 (월)</div>
+      <div class="wbs-goal">🎨 프론트 Phase 1 핵심 화면<small>S2 A/B안 렌더링 + S3 투표 화면</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">6주차</div>
+      <div class="wbs-date-col">05/26 (화)</div>
+      <div class="wbs-goal">🤖 AI 실제 연동<small>OpenAI 2-Step 프롬프트 + Fallback</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">7주차</div>
+      <div class="wbs-date-col">06/02 (화)</div>
+      <div class="wbs-goal">🔗 S4/S5 마무리 · 전체 연동<small>D안 생성 + D-1 리마인더 Scheduler</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">8주차</div>
+      <div class="wbs-date-col">06/10 (수)</div>
+      <div class="wbs-goal">🚀 배포 CI/CD<small>KT Cloud VM + Nginx + GitHub Actions</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+    <div class="wbs-row">
+      <div class="wbs-week">9주차</div>
+      <div class="wbs-date-col">06/17 (수)</div>
+      <div class="wbs-goal">🏁 버퍼 · 발표 준비<small>버그 수정 + 성능 최적화 + 데모 점검</small></div>
+      <span class="badge badge-plan">예정</span>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- 기술 스택 -->
+<section class="section" id="stack">
+  <div class="section-label">Tech Stack</div>
+  <div class="section-title">기술 스택</div>
+  <div class="stack-grid">
+    <div class="stack-item"><div class="stack-cat">Backend</div><div class="stack-name">Java 17 · Spring Boot 3.x</div></div>
+    <div class="stack-item"><div class="stack-cat">Database</div><div class="stack-name">MySQL 8.0</div></div>
+    <div class="stack-item"><div class="stack-cat">ORM</div><div class="stack-name">Spring Data JPA</div></div>
+    <div class="stack-item"><div class="stack-cat">Auth</div><div class="stack-name">Spring Security · Kakao OAuth2</div></div>
+    <div class="stack-item"><div class="stack-cat">Frontend</div><div class="stack-name">React 18 · Vite</div></div>
+    <div class="stack-item"><div class="stack-cat">Styling</div><div class="stack-name">Tailwind CSS</div></div>
+    <div class="stack-item"><div class="stack-cat">Map</div><div class="stack-name">Kakao Map SDK</div></div>
+    <div class="stack-item"><div class="stack-cat">AI</div><div class="stack-name">OpenAI GPT-4o-mini</div></div>
+    <div class="stack-item"><div class="stack-cat">Infra</div><div class="stack-name">KT Cloud VM · Nginx</div></div>
+    <div class="stack-item"><div class="stack-cat">CI/CD</div><div class="stack-name">GitHub Actions</div></div>
+    <div class="stack-item"><div class="stack-cat">SSL</div><div class="stack-name">Let's Encrypt</div></div>
+    <div class="stack-item"><div class="stack-cat">Scheduler</div><div class="stack-name">Spring Scheduler</div></div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- 문서 링크 -->
+<section class="section" id="links">
+  <div class="section-label">Documents</div>
+  <div class="section-title">프로젝트 문서</div>
+  <div class="links-grid">
+    <a href="https://github.com/sku2026-triplan-dev" class="link-card">
+      <div class="link-icon">📁</div>
+      <div class="link-title">GitHub Repository</div>
+      <div class="link-desc">소스코드 전체 보기</div>
+    </a>
+    <a href="#" class="link-card">
+      <div class="link-icon">📋</div>
+      <div class="link-title">기능정의서 v3</div>
+      <div class="link-desc">F-001 ~ F-028 전체 기능 목록</div>
+    </a>
+    <a href="#" class="link-card">
+      <div class="link-icon">🗺️</div>
+      <div class="link-title">스토리보드</div>
+      <div class="link-desc">S1~S5 전체 화면 흐름</div>
+    </a>
+    <a href="#" class="link-card">
+      <div class="link-icon">⚡</div>
+      <div class="link-title">API 명세서 v1.0</div>
+      <div class="link-desc">REST API 전체 엔드포인트</div>
+    </a>
+    <a href="#wbs" class="link-card">
+      <div class="link-icon">📅</div>
+      <div class="link-title">WBS 개발 일정표</div>
+      <div class="link-desc">9주 전체 개발 로드맵</div>
+    </a>
+    <a href="#" class="link-card">
+      <div class="link-icon">🗄️</div>
+      <div class="link-title">ERD / DDL</div>
+      <div class="link-desc">DB 스키마 설계 (작성중)</div>
+    </a>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 <span>sku2026-triplan-dev</span> · AI 여행 플래너 · SKU 멘토링 프로젝트</p>
+  <p style="margin-top:6px;">Built with ☕ Java &amp; ⚛️ React</p>
+</footer>
+
+</body>
+</html>
